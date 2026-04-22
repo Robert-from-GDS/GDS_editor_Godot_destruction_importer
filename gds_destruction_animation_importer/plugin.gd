@@ -4,11 +4,11 @@ extends EditorPlugin
 var builder
 
 func _enter_tree():
-	builder = preload("res://addons/destructor_importer/builder.gd").new()
-	add_tool_menu_item("Generate GDS destruction animation", _generate_scene)
+	builder = preload("res://addons/gds_animation_importer/gds_animation_importer.gd").new()
+	add_tool_menu_item("Import GDS Editor animation", _generate_scene)
 
 func _exit_tree():
-	remove_tool_menu_item("Generate Destructor Scene")
+	remove_tool_menu_item("Import GDS Editor animation")
 
 func _generate_scene():
 	var paths = get_editor_interface().get_selected_paths()
