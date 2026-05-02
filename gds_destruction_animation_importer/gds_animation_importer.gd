@@ -172,9 +172,9 @@ func getOffset(anim_data) -> Vector2:
 	var gds_origin_x = float(anim_data.get("animationOriginX", tex_center_x))
 	var gds_origin_y = float(anim_data.get("animationOriginY", tex_center_y))
 	
-	# ✅ Convert to Godot offset (relative to center)
+	# Convert to Godot offset (relative to center)
 	var offset_x = gds_origin_x - tex_center_x
-	var offset_y = -(gds_origin_y - tex_center_y)  # ✅ Negate Y
+	var offset_y = -(gds_origin_y - tex_center_y)  # Negate Y
 	
 	return Vector2(offset_x, offset_y)
 	
