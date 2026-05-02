@@ -159,12 +159,32 @@ func calculate_pivot_shift(anim_data) -> Dictionary:
 	return {"x": deviation_x, "y": deviation_y}
 	
 	
+func getOffset(anim_data) -> Vector2:
+	if parent_texture == null:
+		return Vector2.ZERO
+	
+	var tex_width = float(parent_texture.get_width())
+	var tex_height = float(parent_texture.get_height())
+	var tex_center_x = tex_width / 2.0
+	var tex_center_y = tex_height / 2.0
+	
+	# Get GDS origin (in texture pixel space, absolute coordinates)
+	var gds_origin_x = float(anim_data.get("animationOriginX", tex_center_x))
+	var gds_origin_y = float(anim_data.get("animationOriginY", tex_center_y))
+	
+	# ✅ Convert to Godot offset (relative to center)
+	var offset_x = gds_origin_x - tex_center_x
+	var offset_y = -(gds_origin_y - tex_center_y)  # ✅ Negate Y
+	
+	return Vector2(offset_x, offset_y)
+	
 	
 
 func _bake_fragment_tracks(anim_data, animation: Animation, node_prefix: String, keyframes):
 	var all_fragment_ids = anim_data.atlasMap.keys()
 	#if the animation uses a different postion other than ceneter we should shift the pivot by x and y 
 	var pivot_shift=calculate_pivot_shift(anim_data)#if the animation uses a different pivot compared to the base sprite then we should offset the fragment for this animation alone or different pivots will cause jumping and shift
+	var offset=getOffset(anim_data)
 	var tracks := {}
 	for frag_id in all_fragment_ids:
 		var frag_id_str = str(frag_id)
@@ -173,7 +193,8 @@ func _bake_fragment_tracks(anim_data, animation: Animation, node_prefix: String,
 			"scale": -1,
 			"rotation": -1,
 			"opacity": -1,
-			"z_index": -1
+			"z_index": -1,
+			"offset": -1
 		}
 		var has_position = false
 		var has_scale = false
@@ -223,6 +244,11 @@ func _bake_fragment_tracks(anim_data, animation: Animation, node_prefix: String,
 		if has_z_index:
 			tracks[frag_id_str]["z_index"] = animation.add_track(Animation.TYPE_VALUE)
 			animation.track_set_path(tracks[frag_id_str]["z_index"], "%s:z_index" % base_path)
+			
+		tracks[frag_id_str]["offset"] = animation.add_track(Animation.TYPE_VALUE)
+		animation.track_set_path(tracks[frag_id_str]["offset"], "%s:offset" % base_path)
+		animation.track_insert_key(tracks[frag_id_str]["offset"], 0.0, offset)
+			
 	# Insert keys
 	for keyframe in keyframes:
 		var time = keyframe.get("time", 0.0) / 1000.0
@@ -231,16 +257,16 @@ func _bake_fragment_tracks(anim_data, animation: Animation, node_prefix: String,
 			var frag_id_str = str(frag_data.get("id", 0))
 			if tracks[frag_id_str]["position"] != -1 and (frag_data.has("x") or frag_data.has("y")):
 				# later, when inserting position keys:
-				var baked_pos := Vector2(
-					frag_data.get("x", 0.0) - pivot_shift.x,
-					frag_data.get("y", 0.0) - pivot_shift.y
-				)
-				animation.track_insert_key(tracks[frag_id_str]["position"], time, baked_pos)
-				#animation.track_insert_key(
-					#tracks[frag_id_str]["position"],
-					#time,
-					#Vector2(frag_data.get("x", 0), frag_data.get("y", 0))
+				#var baked_pos := Vector2(
+					#frag_data.get("x", 0.0) - pivot_shift.x,
+					#frag_data.get("y", 0.0) - pivot_shift.y
 				#)
+				#animation.track_insert_key(tracks[frag_id_str]["position"], time, baked_pos)
+				animation.track_insert_key(
+					tracks[frag_id_str]["position"],
+					time,
+					Vector2(frag_data.get("x", 0), frag_data.get("y", 0))
+				)
 			if tracks[frag_id_str]["scale"] != -1 and (frag_data.has("scaleX") or frag_data.has("scaleY")):
 				animation.track_insert_key(
 					tracks[frag_id_str]["scale"],
